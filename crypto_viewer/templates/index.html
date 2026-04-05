@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Crypto Price Viewer{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1><i class="bi bi-graph-up"></i> Crypto Dashboard</h1>
+        <p class="text-muted">Real-time cryptocurrency prices in JPY</p>
+    </div>
+    <div class="col-auto">
+        <span class="badge bg-success" id="update-status">
+            <i class="bi bi-check-circle"></i> Live
+        </span>
+        <small class="text-muted ms-2" id="last-update"></small>
+    </div>
+</div>
+
+<!-- Price Table -->
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <i class="bi bi-table"></i> Price List
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="price-table">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th class="text-end">Price ({{ currency_symbol }})</th>
+                        <th class="text-end">24h Change</th>
+                        <th class="text-end">Market Cap</th>
+                        <th class="text-end">Volume (24h)</th>
+                        <th class="text-center">Chart</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for coin in coins %}
+                    <tr data-coin-id="{{ coin.id }}">
+                        <td>{{ loop.index }}</td>
+                        <td>
+                            <strong>{{ coin.name }}</strong>
+                            <span class="badge bg-secondary">{{ coin.symbol }}</span>
+                        </td>
+                        <td class="text-end price-cell">
+                            {{ currency_symbol }}{{ "{:,.0f}".format(coin.price) }}
+                        </td>
+                        <td class="text-end">
+                            {% if coin.change_24h >= 0 %}
+                            <span class="text-success">
+                                <i class="bi bi-caret-up-fill"></i>
+                                +{{ "{:.2f}".format(coin.change_24h) }}%
+                            </span>
+                            {% else %}
+                            <span class="text-danger">
+                                <i class="bi bi-caret-down-fill"></i>
+                                {{ "{:.2f}".format(coin.change_24h) }}%
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {{ currency_symbol }}{{ "{:,.0f}".format(coin.market_cap) }}
+                        </td>
+                        <td class="text-end">
+                            {{ currency_symbol }}{{ "{:,.0f}".format(coin.volume_24h) }}
+                        </td>
+                        <td class="text-center">
+                            <a href="/chart/{{ coin.id }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-graph-up"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Auto-refresh notice -->
+<div class="mt-3 text-center">
+    <small class="text-muted">
+        <i class="bi bi-arrow-repeat"></i> Prices auto-update every 30 seconds
+    </small>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-refresh prices every 30 seconds
+    setInterval(refreshPrices, 30000);
+
+    function refreshPrices() {
+        fetch('/api/prices')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updatePriceTable(data.data, data.currency_symbol);
+                    updateLastUpdate();
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching prices:', error);
+                document.getElementById('update-status').className = 'badge bg-danger';
+                document.getElementById('update-status').innerHTML = '<i class="bi bi-exclamation-circle"></i> Error';
+            });
+    }
+
+    function updatePriceTable(coins, currencySymbol) {
+        coins.forEach(coin => {
+            const row = document.querySelector(`tr[data-coin-id="${coin.id}"]`);
+            if (row) {
+                const priceCell = row.querySelector('.price-cell');
+                const changeCell = row.querySelector('td:nth-child(4)');
+
+                // Update price
+                priceCell.textContent = currencySymbol + formatNumber(coin.price);
+
+                // Update 24h change
+                const changeValue = coin.change_24h;
+                const changeClass = changeValue >= 0 ? 'text-success' : 'text-danger';
+                const changeIcon = changeValue >= 0 ? 'bi-caret-up-fill' : 'bi-caret-down-fill';
+                const changeSign = changeValue >= 0 ? '+' : '';
+
+                changeCell.innerHTML = `
+                    <span class="${changeClass}">
+                        <i class="bi ${changeIcon}"></i>
+                        ${changeSign}${changeValue.toFixed(2)}%
+                    </span>
+                `;
+            }
+        });
+    }
+
+    function formatNumber(num) {
+        return new Intl.NumberFormat('ja-JP').format(Math.round(num));
+    }
+
+    function updateLastUpdate() {
+        const now = new Date();
+        document.getElementById('last-update').textContent =
+            'Updated: ' + now.toLocaleTimeString('ja-JP');
+        document.getElementById('update-status').className = 'badge bg-success';
+        document.getElementById('update-status').innerHTML = '<i class="bi bi-check-circle"></i> Live';
+    }
+
+    // Initial update time
+    updateLastUpdate();
+</script>
+{% endblock %}

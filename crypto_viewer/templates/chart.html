@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+
+{% block title %}{{ coin.name }} Chart - Crypto Price Viewer{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+                <li class="breadcrumb-item active">{{ coin.name }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<!-- Coin Header -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="d-flex align-items-center">
+            {% if coin.image %}
+            <img src="{{ coin.image }}" alt="{{ coin.name }}" width="48" height="48" class="me-3">
+            {% endif %}
+            <div>
+                <h1 class="mb-0">{{ coin.name }} <span class="badge bg-secondary">{{ coin.symbol }}</span></h1>
+                <small class="text-muted">Rank #{{ coin.market_cap_rank }}</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 text-end">
+        <h2 class="mb-0">{{ currency_symbol }}{{ "{:,.0f}".format(coin.price) }}</h2>
+        {% if coin.change_24h >= 0 %}
+        <span class="text-success fs-5">
+            <i class="bi bi-caret-up-fill"></i> +{{ "{:.2f}".format(coin.change_24h) }}%
+        </span>
+        {% else %}
+        <span class="text-danger fs-5">
+            <i class="bi bi-caret-down-fill"></i> {{ "{:.2f}".format(coin.change_24h) }}%
+        </span>
+        {% endif %}
+        <small class="text-muted">(24h)</small>
+    </div>
+</div>
+
+<!-- Chart Section -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-graph-up"></i> Price Chart</span>
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-sm btn-light period-btn active" data-days="1">1D</button>
+            <button type="button" class="btn btn-sm btn-outline-light period-btn" data-days="7">1W</button>
+            <button type="button" class="btn btn-sm btn-outline-light period-btn" data-days="30">1M</button>
+            <button type="button" class="btn btn-sm btn-outline-light period-btn" data-days="90">3M</button>
+            <button type="button" class="btn btn-sm btn-outline-light period-btn" data-days="365">1Y</button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="chart-container" style="position: relative; height: 400px;">
+            <canvas id="priceChart"></canvas>
+        </div>
+        <div class="text-center mt-2" id="chart-loading" style="display: none;">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            Loading chart data...
+        </div>
+    </div>
+</div>
+
+<!-- Coin Details -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <i class="bi bi-info-circle"></i> Market Data
+            </div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted">Market Cap</td>
+                            <td class="text-end">{{ currency_symbol }}{{ "{:,.0f}".format(coin.market_cap) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">24h Volume</td>
+                            <td class="text-end">{{ currency_symbol }}{{ "{:,.0f}".format(coin.volume_24h) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">24h High</td>
+                            <td class="text-end">{{ currency_symbol }}{{ "{:,.0f}".format(coin.high_24h) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">24h Low</td>
+                            <td class="text-end">{{ currency_symbol }}{{ "{:,.0f}".format(coin.low_24h) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <i class="bi bi-graph-down"></i> Price Changes
+            </div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted">24h</td>
+                            <td class="text-end">
+                                {% if coin.change_24h >= 0 %}
+                                <span class="text-success">+{{ "{:.2f}".format(coin.change_24h) }}%</span>
+                                {% else %}
+                                <span class="text-danger">{{ "{:.2f}".format(coin.change_24h) }}%</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">7d</td>
+                            <td class="text-end">
+                                {% if coin.change_7d >= 0 %}
+                                <span class="text-success">+{{ "{:.2f}".format(coin.change_7d) }}%</span>
+                                {% else %}
+                                <span class="text-danger">{{ "{:.2f}".format(coin.change_7d) }}%</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">30d</td>
+                            <td class="text-end">
+                                {% if coin.change_30d >= 0 %}
+                                <span class="text-success">+{{ "{:.2f}".format(coin.change_30d) }}%</span>
+                                {% else %}
+                                <span class="text-danger">{{ "{:.2f}".format(coin.change_30d) }}%</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">All-Time High</td>
+                            <td class="text-end">{{ currency_symbol }}{{ "{:,.0f}".format(coin.ath) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Supply Info -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <i class="bi bi-coin"></i> Supply Information
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <p class="mb-1 text-muted">Circulating Supply</p>
+                <p class="fs-5">{{ "{:,.0f}".format(coin.circulating_supply) }} {{ coin.symbol }}</p>
+            </div>
+            <div class="col-md-6">
+                <p class="mb-1 text-muted">Total Supply</p>
+                <p class="fs-5">
+                    {% if coin.total_supply %}
+                    {{ "{:,.0f}".format(coin.total_supply) }} {{ coin.symbol }}
+                    {% else %}
+                    N/A
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const coinId = '{{ coin.id }}';
+    let priceChart = null;
+
+    // Initialize chart
+    document.addEventListener('DOMContentLoaded', function() {
+        loadChart('1');
+
+        // Period button handlers
+        document.querySelectorAll('.period-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.period-btn').forEach(b => {
+                    b.classList.remove('active', 'btn-light');
+                    b.classList.add('btn-outline-light');
+                });
+                this.classList.remove('btn-outline-light');
+                this.classList.add('active', 'btn-light');
+                loadChart(this.dataset.days);
+            });
+        });
+    });
+
+    function loadChart(days) {
+        const loading = document.getElementById('chart-loading');
+        loading.style.display = 'block';
+
+        fetch(`/api/chart/${coinId}?days=${days}`)
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                if (data.success) {
+                    renderChart(data.data, days);
+                }
+            })
+            .catch(error => {
+                loading.style.display = 'none';
+                console.error('Error loading chart:', error);
+            });
+    }
+
+    function renderChart(data, days) {
+        const ctx = document.getElementById('priceChart').getContext('2d');
+
+        // Format labels based on period
+        const labels = data.labels.map(timestamp => {
+            const date = new Date(timestamp);
+            if (days === '1') {
+                return date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+            } else if (days <= 7) {
+                return date.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit' });
+            } else {
+                return date.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
+            }
+        });
+
+        // Destroy existing chart if it exists
+        if (priceChart) {
+            priceChart.destroy();
+        }
+
+        // Determine chart color based on price trend
+        const firstPrice = data.prices[0];
+        const lastPrice = data.prices[data.prices.length - 1];
+        const isPositive = lastPrice >= firstPrice;
+        const lineColor = isPositive ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)';
+        const bgColor = isPositive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+
+        priceChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Price (JPY)',
+                    data: data.prices,
+                    borderColor: lineColor,
+                    backgroundColor: bgColor,
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.1,
+                    pointRadius: 0,
+                    pointHoverRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return '{{ currency_symbol }}' + new Intl.NumberFormat('ja-JP').format(Math.round(context.raw));
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            maxTicksLimit: 8
+                        }
+                    },
+                    y: {
+                        display: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '{{ currency_symbol }}' + new Intl.NumberFormat('ja-JP').format(value);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}
